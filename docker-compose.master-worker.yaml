@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  spark-master:
+    image: dwad/pyspark-cluster:3.4.0
+    container_name: pyspark-master
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    volumes:
+      - ./apps:/opt/spark/apps
+    networks:
+      - spark_network
+
+  spark-worker-a:
+    image: dwad/pyspark-cluster:3.4.0
+    container_name: pyspark-worker-a
+    ports:
+      - "9091:8080"
+      - "7000:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+    volumes:
+      - ./apps:/opt/spark/apps
+    networks:
+      - spark_network
+
+  jupyterlab:
+    image: dwad/pyspark-cluster:3.4.0
+    container_name: jupyterlab
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/opt/notebooks  # or any directory you want for notebooks
+    command: [ "jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--notebook-dir=/opt/notebooks" ]
+    depends_on:
+      - spark-master
+    networks:
+      - spark_network
+
+networks:
+  spark_network:
+    external: true
